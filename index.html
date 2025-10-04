@@ -1,0 +1,327 @@
+<!doctype html>
+<html lang="he" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>KidRoutine</title>
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="theme-color" content="#4f46e5">
+<style>
+  :root { --bg:#f6f7fb; --card:#fff; --text:#111; --muted:#6b7280; --brand:#4f46e5; }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:system-ui, -apple-system, Segoe UI, Heebo, Arial; background:linear-gradient(#ffffff, #eef0ff) fixed min(100vh, 100%); color:var(--text)}
+  header{display:flex;align-items:center;justify-content:space-between;padding:12px 16px;position:sticky;top:0;background:#fff7;backdrop-filter:saturate(180%) blur(8px);border-bottom:1px solid #e5e7eb}
+  .brand{display:flex;align-items:center;gap:8px;font-weight:800}
+  .badge{border:1px solid #e5e7eb;border-radius:999px;padding:4px 10px;font-size:12px;color:#374151;background:#fff}
+  main{max-width:480px;margin:0 auto;padding:12px}
+  .card{background:var(--card);border:1px solid #e5e7eb;border-radius:16px;padding:12px;margin:12px 0;box-shadow:0 1px 2px rgba(0,0,0,.04)}
+  .title{display:flex;align-items:center;gap:8px;font-weight:700;font-size:18px}
+  .muted{color:var(--muted);font-size:12px}
+  .row{display:flex;align-items:center;gap:12px;padding:10px 0;border-bottom:1px dashed #eee}
+  .row:last-child{border-bottom:none}
+  .switch{inline-size:46px;block-size:28px;border-radius:999px;background:#eee;position:relative;cursor:pointer}
+  .switch::after{content:"";position:absolute;inset:4px;inline-size:20px;border-radius:999px;background:#fff;box-shadow:0 1px 2px rgba(0,0,0,.1);transition:transform .2s}
+  .switch.on{background:#c7d2fe}
+  .switch.on::after{transform:translateX(-18px) translateX(100%)}
+  .actions{margin-inline-start:auto;display:flex;gap:6px}
+  button{appearance:none;border:none;border-radius:12px;padding:8px 12px;background:#f3f4f6;color:#111;font-weight:600;cursor:pointer}
+  button.primary{background:var(--brand);color:#fff}
+  button.ghost{background:transparent}
+  input, textarea{width:100%;padding:10px;border:1px solid #e5e7eb;border-radius:12px}
+  .tabs{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;background:#eef2ff;border-radius:12px;padding:6px}
+  .tabs button{background:transparent;color:#111}
+  .tabs .active{background:#fff;border:1px solid #e5e7eb}
+  .progress{height:10px;background:#eef2ff;border-radius:999px;overflow:hidden}
+  .progress > div{height:100%;background:linear-gradient(90deg,#60a5fa,#4f46e5);width:0%}
+  .badges{display:flex;flex-wrap:wrap;gap:8px}
+  .badge2{background:#f3f4f6;padding:6px 10px;border-radius:999px;border:1px solid #e5e7eb;font-size:12px}
+  .confetti{pointer-events:none;position:fixed;inset:0;overflow:hidden}
+  .confetti span{position:absolute;top:-10vh;left:50%;width:8px;height:8px;border-radius:999px;background:conic-gradient(#4f46e5,#60a5fa);animation:fall 1.6s linear infinite}
+  @keyframes fall{from{transform:translate3d(var(--x),-20vh,0);opacity:1}to{transform:translate3d(var(--x),100vh,0);opacity:0}}
+  .hint{font-size:12px;color:#6b7280;margin-top:8px}
+</style>
+</head>
+<body>
+<header>
+  <div class="brand"><img src="icons/icon-192.png" alt="logo" width="24" height="24" style="border-radius:6px"> KidRoutine</div>
+  <div style="display:flex;align-items:center;gap:8px">
+    <button id="installBtn" class="primary" style="display:none">התקנה</button>
+    <span id="status" class="badge">ווב</span>
+  </div>
+</header>
+<main>
+  <section class="card">
+    <div class="title">ברוך/ה הבא/ה, <span id="kidNameLabel">גיבור/ה</span>!</div>
+    <div class="muted" id="subtitle">בוא/י נתקתק משימות בסדר כיפי</div>
+    <div class="progress" style="margin-top:8px"><div id="progressBar" style="width:0%"></div></div>
+    <div class="muted" style="margin-top:6px">התקדמות: <span id="progressText">0%</span></div>
+  </section>
+
+  <div class="tabs card">
+    <button id="tabMorning" class="active">בוקר</button>
+    <button id="tabEvening">ערב</button>
+    <button id="tabAchieve">חיזוקים</button>
+  </div>
+
+  <section id="list" class="card"></section>
+
+  <section class="card" id="parentCard">
+    <div class="title">הגדרות להורה</div>
+    <div class="muted">נעילה עם PIN (ברירת מחדל: 1234)</div>
+    <div style="display:flex;align-items:center;gap:8px;margin-top:8px">
+      <label>מצב הורה</label>
+      <input type="checkbox" id="parentMode">
+    </div>
+    <div id="pinGate" style="display:none;margin-top:8px;gap:8px" class="row">
+      <input id="pinInput" inputmode="numeric" placeholder="הכנס PIN" style="max-width:140px">
+      <button id="pinOpen">פתח נעילה</button>
+    </div>
+    <div id="parentPanel" style="display:none">
+      <div class="row" style="border-bottom:none">
+        <label>שם הילד/ה:</label>
+        <input id="kidName" placeholder="גיבור/ה" style="max-width:220px">
+      </div>
+      <div class="row" style="border-bottom:none">
+        <label>שנה PIN:</label>
+        <input id="pinNew" inputmode="numeric" placeholder="חדש" style="max-width:140px">
+      </div>
+      <div style="display:flex;gap:8px">
+        <button id="resetDay">איפוס סימונים להיום</button>
+        <button id="resetRewards">איפוס מטבעות/כוכבים</button>
+      </div>
+      <hr style="margin:12px 0">
+      <div style="display:flex;gap:6px">
+        <input id="newTaskTitle" placeholder="שם המשימה">
+        <input id="newTaskMinutes" inputmode="numeric" placeholder="דקות" style="max-width:90px">
+        <button id="addTask">הוסף</button>
+      </div>
+      <div class="hint">הוסף משימות לפי הטאב שנבחר (בוקר/ערב)</div>
+    </div>
+  </section>
+
+  <section class="card">
+    <div class="title">הערות / גישת חינוך</div>
+    <textarea id="notes" placeholder="כתוב/כתבי כאן הערות שימוש, אילו פרסים נקבעו, או התאמות לילד/ה"></textarea>
+    <div class="hint">הנתונים נשמרים רק במכשיר (LocalStorage). כדי לאפשר התקנה ואופליין מלא – פתח/י דרך https (למשל GitHub Pages / Netlify).</div>
+  </section>
+</main>
+
+<div id="confetti" class="confetti" style="display:none"></div>
+
+<script>
+// ---------- storage helpers ----------
+const LS = (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d } catch { return d } };
+const SET = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)) } catch {} };
+
+// ---------- default data ----------
+const DEFAULT_MORNING = [
+  { id: crypto.randomUUID(), title: "להתעורר בזמן", minutes: 2 },
+  { id: crypto.randomUUID(), title: "ללכת לשירותים", minutes: 3 },
+  { id: crypto.randomUUID(), title: "לצחצח שיניים ולשטוף פנים", minutes: 3 },
+  { id: crypto.randomUUID(), title: "להתלבש לבד", minutes: 5 },
+  { id: crypto.randomUUID(), title: "לאכול ארוחת בוקר", minutes: 10 },
+  { id: crypto.randomUUID(), title: "לקחת תיק ובקבוק מים", minutes: 1 },
+];
+const DEFAULT_EVENING = [
+  { id: crypto.randomUUID(), title: "לאסוף צעצועים", minutes: 5 },
+  { id: crypto.randomUUID(), title: "להכין תיק לבית הספר", minutes: 4 },
+  { id: crypto.randomUUID(), title: "שיעורי בית", minutes: 20 },
+  { id: crypto.randomUUID(), title: "להכין בגדים למחר", minutes: 3 },
+  { id: crypto.randomUUID(), title: "לצחצח שיניים", minutes: 3 },
+  { id: crypto.randomUUID(), title: "סיפור לפני השינה", minutes: 10 },
+];
+const DEFAULT_MOTIVATORS = [
+  { id: crypto.randomUUID(), title: "הכיר חבר חדש" },
+  { id: crypto.randomUUID(), title: "שיחק יפה עם אחרים" },
+  { id: crypto.randomUUID(), title: "עשה פיפי/קקי בבית הספר" },
+  { id: crypto.randomUUID(), title: "מילא מים לבד" },
+  { id: crypto.randomUUID(), title: "עזר למורה" },
+];
+
+// ---------- state ----------
+let tab = LS('tab', 'morning');
+let nameVal = LS('kidName', 'גיבור/ה');
+let morning = LS('morningTasks', DEFAULT_MORNING);
+let evening = LS('eveningTasks', DEFAULT_EVENING);
+let motives = LS('motives', DEFAULT_MOTIVATORS);
+let today = new Date().toDateString();
+let done = LS('doneToday', { date: today, morning:{}, evening:{}, motives:{} });
+if(done.date !== today) { done = { date: today, morning:{}, evening:{}, motives:{} }; SET('doneToday', done); }
+let coins = LS('coins', 0);
+let stars = LS('stars', 0);
+let parentMode = LS('parentMode', false);
+let pinOk = false;
+
+// ---------- helpers ----------
+const el = sel => document.querySelector(sel);
+function save(){ SET('tab',tab); SET('kidName',nameVal); SET('morningTasks',morning); SET('eveningTasks',evening); SET('motives',motives); SET('doneToday',done); SET('coins',coins); SET('stars',stars); SET('parentMode',parentMode); }
+
+function showConfetti(ms=1200){
+  const c = el('#confetti'); c.innerHTML = '';
+  for(let i=0;i<60;i++){ const s = document.createElement('span'); s.style.setProperty('--x', ((i-30)*6)+'px'); s.style.animationDelay = (i%20)*0.05+'s'; c.appendChild(s); }
+  c.style.display='block'; setTimeout(()=>c.style.display='none', ms);
+}
+
+function progressFor(listName){
+  const list = listName==='morning' ? morning : evening;
+  const map = done[listName];
+  const total = list.length || 1;
+  const count = list.filter(t => map[t.id]).length;
+  return Math.round(100*count/total);
+}
+
+// ---------- UI render ----------
+function renderHeader(){
+  el('#kidNameLabel').textContent = nameVal;
+  const p = tab==='morning' ? progressFor('morning') : (tab==='evening'?progressFor('evening'):0);
+  el('#progressBar').style.width = p+'%';
+  el('#progressText').textContent = p+'%';
+  el('#subtitle').textContent = tab==='morning' ? 'בוא/י נתקתק משימות בסדר כיפי' : (tab==='evening' ? 'נסיים בנעימים ונלך לישון' : 'סמן/י הצלחות יומיומיות בבית הספר ובחיים');
+}
+
+function switchEl(on){ const div = document.createElement('div'); div.className = 'switch'+(on?' on':''); return div; }
+
+function renderList(){
+  const box = el('#list'); box.innerHTML='';
+  if(tab==='morning' || tab==='evening'){
+    const list = (tab==='morning'?morning:evening);
+    const map = done[tab];
+    list.forEach(task => {
+      const row = document.createElement('div'); row.className='row';
+      const sw = switchEl(!!map[task.id]); sw.onclick = () => { map[task.id] = !map[task.id]; if(map[task.id]){ coins++; showConfetti(); ding(); } save(); render(); };
+      const text = document.createElement('div'); text.style.flex='1'; text.innerHTML = '<div style="font-weight:600">'+task.title+'</div>' + (task.minutes?'<div class="muted">טיימר מוצע: '+task.minutes+' דק׳</div>':'');
+      const actions = document.createElement('div'); actions.className='actions';
+      if(task.minutes){ const t = document.createElement('button'); t.textContent='טיימר'; t.onclick = ()=> startTimer((task.minutes||1)*60); actions.appendChild(t); }
+      if(parentMode && pinOk){
+        const ebtn = document.createElement('button'); ebtn.textContent='עריכה'; ebtn.onclick = ()=> editTaskPrompt(tab, task); actions.appendChild(ebtn);
+        const dbtn = document.createElement('button'); dbtn.textContent='מחיקה'; dbtn.onclick = ()=> { const arr = (tab==='morning'?morning:evening).filter(x=>x.id!==task.id); if(tab==='morning') morning=arr; else evening=arr; save(); render(); }; actions.appendChild(dbtn);
+      }
+      row.append(sw, text, actions);
+      box.appendChild(row);
+    });
+  } else {
+    // Achievements
+    const head = document.createElement('div');
+    head.className='badges';
+    head.innerHTML = '<span class="badge2">כוכבים: '+stars+'</span><span class="badge2">מטבעות: '+coins+'</span>';
+    box.appendChild(head);
+    motives.forEach(m => {
+      const row = document.createElement('div'); row.className='row';
+      const sw = switchEl(!!done.motives[m.id]); sw.onclick = ()=>{ const was = !!done.motives[m.id]; done.motives[m.id]=!was; if(!was){ coins+=2; showConfetti(); ding(); } save(); render(); };
+      const text = document.createElement('div'); text.style.flex='1'; text.innerHTML = '<div style="font-weight:600">'+m.title+'</div>';
+      const actions = document.createElement('div'); actions.className='actions';
+      if(parentMode && pinOk){ const dbtn=document.createElement('button'); dbtn.textContent='מחיקה'; dbtn.onclick = ()=>{ motives = motives.filter(x=>x.id!==m.id); save(); render(); }; actions.appendChild(dbtn); }
+      row.append(sw, text, actions);
+      box.appendChild(row);
+    });
+  }
+}
+
+function editTaskPrompt(kind, task){
+  const title = prompt('שם המשימה:', task.title);
+  if(title===null) return;
+  const minutesStr = prompt('דקות (ריק ללא טיימר):', task.minutes ?? '');
+  let minutes = minutesStr ? parseInt(minutesStr.replace(/\D/g,'')) : undefined;
+  const arr = (kind==='morning'?morning:evening).map(x=> x.id===task.id ? ({...task, title, minutes}) : x);
+  if(kind==='morning') morning = arr; else evening = arr;
+  save(); render();
+}
+
+let timerInt=null;
+function startTimer(sec){
+  if(timerInt) clearInterval(timerInt);
+  const panel = document.createElement('div');
+  panel.className='card';
+  panel.innerHTML = '<div class="title">טיימר</div><div id="tm" style="font-size:36px;font-weight:800;margin-top:6px">--:--</div><div class="progress" style="margin-top:6px"><div id="tprog" style="width:0%"></div></div><div style="margin-top:8px"><button id="tstop">איפוס</button></div>';
+  el('main').insertBefore(panel, el('#parentCard'));
+  const total=sec; let left=sec;
+  function fmt(s){ const m=Math.floor(s/60).toString().padStart(2,'0'); const r=(s%60).toString().padStart(2,'0'); return m+':'+r; }
+  function tick(){ el('#tm').textContent = fmt(left); el('#tprog').style.width = (100*(1-left/total))+'%'; if(left<=0){ clearInterval(timerInt); panel.remove(); showConfetti(); ding(); } left--; }
+  tick(); timerInt = setInterval(tick, 1000);
+  el('#tstop').onclick = ()=>{ clearInterval(timerInt); panel.remove(); };
+}
+
+function ding(){
+  // lightweight beep
+  try {
+    const ctx = new (window.AudioContext||window.webkitAudioContext)();
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = 'triangle'; o.frequency.value = 880; o.connect(g); g.connect(ctx.destination);
+    g.gain.setValueAtTime(0.0001, ctx.currentTime);
+    g.gain.exponentialRampToValueAtTime(0.3, ctx.currentTime+0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime+0.22);
+    o.start(); o.stop(ctx.currentTime+0.25);
+  } catch {}
+}
+
+// ---------- parent controls ----------
+function renderParent(){
+  el('#parentMode').checked = parentMode;
+  el('#pinGate').style.display = parentMode && !pinOk ? 'flex' : 'none';
+  el('#parentPanel').style.display = parentMode && pinOk ? 'block' : 'none';
+  el('#kidName').value = nameVal;
+  el('#notes').value = LS('notes','');
+}
+el('#parentMode').onchange = (e)=>{ parentMode = e.target.checked; pinOk=false; save(); render(); };
+el('#pinOpen').onclick = ()=>{ if(el('#pinInput').value === LS('pin','1234')){ pinOk = true; renderParent(); } };
+el('#kidName').oninput = (e)=>{ nameVal = e.target.value; save(); renderHeader(); };
+el('#pinNew').oninput = (e)=>{ SET('pin', e.target.value.replace(/\D/g,'')); };
+el('#resetDay').onclick = ()=>{ done = { date: new Date().toDateString(), morning:{}, evening:{}, motives:{} }; save(); render(); };
+el('#resetRewards').onclick = ()=>{ coins=0; stars=0; save(); render(); };
+el('#addTask').onclick = ()=>{
+  const title = el('#newTaskTitle').value.trim();
+  const minutes = parseInt((el('#newTaskMinutes').value||'').replace(/\D/g,'')) || undefined;
+  if(!title) return;
+  const t = { id: crypto.randomUUID(), title, minutes };
+  (tab==='morning'?morning:evening).push(t);
+  save(); render(); el('#newTaskTitle').value=''; el('#newTaskMinutes').value='';
+};
+el('#notes').oninput = (e)=> SET('notes', e.target.value);
+
+// ---------- tabs ----------
+function setTab(t){ tab=t; save(); render(); }
+el('#tabMorning').onclick = ()=> setTab('morning');
+el('#tabEvening').onclick = ()=> setTab('evening');
+el('#tabAchieve').onclick = ()=> setTab('achieve');
+
+// ---------- star reward when finishing full routine ----------
+function checkStars(){
+  if(progressFor('morning')===100 || progressFor('evening')===100){
+    // award once per 100% per day logic: rough – stars++ on transition to 100%
+    // we simply ensure we don't add more than once per render cycle
+    if(!window.__gotStar){ stars++; window.__gotStar = true; save(); }
+  } else { window.__gotStar = false; }
+}
+
+// ---------- PWA install ----------
+let deferred = null;
+const installBtn = el('#installBtn');
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferred = e;
+  installBtn.style.display = 'inline-block';
+});
+installBtn.onclick = async ()=>{
+  if(!deferred) return;
+  deferred.prompt();
+  const choice = await deferred.userChoice;
+  if(choice.outcome === 'accepted'){ el('#status').textContent = 'מותקן'; installBtn.style.display='none'; }
+};
+
+window.addEventListener('appinstalled', ()=>{
+  el('#status').textContent = 'מותקן';
+  installBtn.style.display = 'none';
+});
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('./sw.js').catch(()=>{});
+  });
+}
+
+// ---------- initial render ----------
+function render(){ renderHeader(); renderList(); renderParent(); checkStars(); document.title = 'KidRoutine'; }
+render();
+</script>
+</body>
+</html>
