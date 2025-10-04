@@ -1,14 +1,14 @@
 {
-  "name": "KidRoutine",
+  "name": "KidRoutine Deluxe + Voice",
   "short_name": "KidRoutine",
-  "description": "שגרות בוקר/ערב וחיזוקים חיוביים לילדים – בעברית ו-RTL",
+  "description": "דלוקס עם קריינות בעברית (Web Speech API), מדבקות, פרסים ו-PWA",
   "lang": "he-IL",
   "dir": "rtl",
   "display": "standalone",
   "start_url": ".",
   "scope": ".",
   "background_color": "#ffffff",
-  "theme_color": "#4f46e5",
+  "theme_color": "#10b981",
   "icons": [
     {
       "src": "icons/icon-192.png",
